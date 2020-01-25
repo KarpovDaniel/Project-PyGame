@@ -21,11 +21,11 @@ def generate_platform():
             (score + 1000) % (chastota * 1000) + 1000):
         last_platform = WhitePlatforms(randint(0, 500), last_platform.rect.y - 50)
     else:
-        if percent < 85:
+        if percent < 82:
             last_platform = GreenPlatforms(randint(0, 500), last_platform.rect.y - 50)
-        elif percent < 95:
+        elif percent < 92:
             last_platform = BluePlatforms(randint(0, 500), last_platform.rect.y - 50)
-        elif percent < 99:
+        elif percent < 98:
             last_platform = RedPlatforms(randint(0, 500), last_platform.rect.y - 50)
         else:
             last_platform = BlackHoles(randint(0, 500), last_platform.rect.y - 50)
@@ -95,15 +95,13 @@ class Doodle(pygame.sprite.Sprite):
                 if pygame.sprite.collide_mask(self, platform):
                     if 40 < platform.rect.y - self.rect.y:
                         self.v = 24
-                        print(prev.rect.y, platform.rect.y)
                         if prev.rect.y > platform.rect.y:
-                            print(score)
                             prev = platform
                             score += randint(75, 130)
                         platform.jump()
         for hole in holes_sprites:
             if pygame.sprite.collide_mask(self, hole):
-                if 40 < hole.rect.y - self.rect.y:
+                if 1 < hole.rect.y - self.rect.y:
                     game_over()
         key = pygame.key.get_pressed()
         if key[K_LEFT]:
@@ -260,6 +258,7 @@ doodle = Doodle()
 last_platform = 900
 font = pygame.font.SysFont("Times New Roman", 25)
 prev = GreenPlatforms(200, 850)
+monster_sprites = pygame.sprite.Group()
 
 
 def game():
@@ -330,7 +329,7 @@ def game_over():
             if event.type == pygame.QUIT:
                 exit()
             if event.type == pygame.MOUSEBUTTONDOWN:
-                if 380 < event.pos[1] < rect.h + 380 and 175 < event.pos[0] < rect.w + 100:
+                if 380 < event.pos[1] < rect.h + 380 and 175 < event.pos[0] < rect.w + 180:
                     pygame.display.quit()
                     game()
                     pygame.quit()
@@ -375,7 +374,7 @@ def info():
 def main():
     ex = Main()
     ex.show()
-    exit(228)
+    exit(404)
 
 
 app = QApplication(argv)
