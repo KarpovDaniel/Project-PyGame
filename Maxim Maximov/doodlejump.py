@@ -1,12 +1,8 @@
 from random import randint
-from sys import exit, argv
+from sys import exit
 
 import pygame
-from PyQt5.QtGui import QBrush, QImage, QPalette
-from PyQt5.QtWidgets import QMainWindow, QApplication
 from pygame.locals import *
-
-from main import Ui_MainWindow
 
 pygame.mixer.init()
 pygame.init()
@@ -21,46 +17,51 @@ def generate_platform():
             (score + 1000) % (chastota * 1000) + 1000):
         last_platform = WhitePlatforms(randint(0, 500), last_platform.rect.y - 50)
     else:
-        if percent < 82:
+        if percent < 5:
+            last_platform = Monsters(randint(0, 500), last_platform.rect.y - 50)
+        if percent < 85:
             last_platform = GreenPlatforms(randint(0, 500), last_platform.rect.y - 50)
-        elif percent < 92:
+        elif percent < 95:
             last_platform = BluePlatforms(randint(0, 500), last_platform.rect.y - 50)
-        elif percent < 98:
+        elif percent < 99:
             last_platform = RedPlatforms(randint(0, 500), last_platform.rect.y - 50)
-        else:
+        elif percent == 99 and score > 100:
             last_platform = BlackHoles(randint(0, 500), last_platform.rect.y - 50)
-
-
-class Main(QMainWindow, Ui_MainWindow):
-    def __init__(self):
-        super().__init__()
-        self.setupUi(self)
-        self.pushButton.clicked.connect(self.game)
-        self.pushButton_3.clicked.connect(self.exit)
-        self.pushButton_2.clicked.connect(self.info)
-        self.InitUI()
-
-    def InitUI(self):
-        self.sImage = QImage("data/color.jpg")
-        self.palette = QPalette()
-        self.palette.setBrush(QPalette.Window, QBrush(self.sImage))
-        self.setPalette(self.palette)
-
-    def game(self):
-        self.hide()
-        game()
-
-    def exit(self):
-        self.hide()
-        exit(0)
-
-    def info(self):
-        self.hide()
-        info()
 
 
 score = 0
 chastota = randint(5, 10)
+
+
+def game_over():
+    screen = pygame.display.set_mode((500, 500))
+    fon = pygame.image.load("data/image3.jpg")
+    screen.blit(fon, (0, 0))
+    font = pygame.font.Font(None, 65)
+    string_rendered = font.render('Restart', 1, pygame.Color('green'))
+    pygame.mouse.set_visible(True)
+    rect = string_rendered.get_rect()
+    rect.x = 175
+    rect.y = 380
+    pygame.mixer.music.load("data/gameover.mp3")
+    pygame.mixer.music.set_volume(0.4)
+    pygame.mixer.music.play(1)
+    screen.blit(string_rendered, rect)
+    pygame.display.flip()
+
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                exit()
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if 380 < event.pos[1] < rect.h + 380 and 175 < event.pos[0] < rect.w + 175:
+                    game()
+                    exit(0)
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    game()
+                    pygame.quit()
+                    exit(0)
 
 
 class Doodle(pygame.sprite.Sprite):
@@ -101,7 +102,11 @@ class Doodle(pygame.sprite.Sprite):
                         platform.jump()
         for hole in holes_sprites:
             if pygame.sprite.collide_mask(self, hole):
-                if 1 < hole.rect.y - self.rect.y:
+                if 10 < hole.rect.y - self.rect.y:
+                    game_over()
+        for monst in monster_sprite:
+            if pygame.sprite.collide_mask(self, monst):
+                if 10 < monst.rect.y - self.rect.y:
                     game_over()
         key = pygame.key.get_pressed()
         if key[K_LEFT]:
@@ -120,11 +125,31 @@ class Doodle(pygame.sprite.Sprite):
                     if 40 < platform.rect.y - self.rect.y:
                         platform.jump()
         if self.rect.y >= 420:
-            pygame.display.quit()
             game_over()
 
     def update_pos(self, pos):
         self.rect.x += pos
+
+
+class Monsters(pygame.sprite.Sprite):
+    image = pygame.image.load("data/monster.png")
+
+    def __init__(self, pos_x, pos_y):
+        super().__init__(all_sprites, monster_sprite)
+        self.image = Monsters.image
+        self.rect = self.image.get_rect()
+        self.mask = pygame.mask.from_surface(self.image)
+        self.rect.x = pos_x
+        self.rect.y = pos_y
+        self.v = 5
+
+    def update(self):
+        self.rect.x += self.v
+        if not 0 < self.rect.x < 500:
+            self.v = -self.v
+        if self.rect.y > 1000:
+            self.kill()
+            generate_platform()
 
 
 class WhitePlatforms(pygame.sprite.Sprite):
@@ -254,23 +279,27 @@ all_sprites = pygame.sprite.Group()
 white_platform_sprites = pygame.sprite.Group()
 camera = Camera()
 dead_platform_sprites = pygame.sprite.Group()
+monster_sprite = pygame.sprite.Group()
 doodle = Doodle()
 last_platform = 900
 font = pygame.font.SysFont("Times New Roman", 25)
 prev = GreenPlatforms(200, 850)
-monster_sprites = pygame.sprite.Group()
 
 
 def game():
     global score, prev
     score = 0
+    pygame.mixer.music.load("data/blood.mp3")
+    pygame.mixer.music.set_volume(0.2)
+    pygame.mixer.music.play(1)
     global player, platform_sprites, red_platform_sprites, all_sprites, \
-        doodle, last_platform, holes_sprites
+        doodle, last_platform, holes_sprites, monster_sprite
     size = width, height = 600, 800
     screen = pygame.display.set_mode(size)
     player = pygame.sprite.Group()
     platform_sprites = pygame.sprite.Group()
     holes_sprites = pygame.sprite.Group()
+    monster_sprite = pygame.sprite.Group()
     red_platform_sprites = pygame.sprite.Group()
     all_sprites = pygame.sprite.Group()
     pygame.mouse.set_visible(False)
@@ -293,9 +322,7 @@ def game():
                 exit(0)
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
-                    pygame.display.quit()
-                    pygame.quit()
-                    main()
+                    return
         all_sprites.update()
         camera.update(doodle)
         for sprite in all_sprites:
@@ -308,20 +335,23 @@ def game():
         pygame.display.flip()
 
 
-def game_over():
+class Main:
     screen = pygame.display.set_mode((500, 500))
-    fon = pygame.image.load("data/image3.jpg")
+    fon = pygame.image.load("data/fon_main.jpg")
     screen.blit(fon, (0, 0))
     font = pygame.font.Font(None, 65)
-    string_rendered = font.render('Restart', 1, pygame.Color('green'))
+    string_rendered = font.render('Начать игру', 1, pygame.Color('White'))
+    string_exit = font.render('Выход', 1, pygame.Color('White'))
     pygame.mouse.set_visible(True)
     rect = string_rendered.get_rect()
-    rect.x = 175
-    rect.y = 380
-    pygame.mixer.music.load("data/gameover.mp3")
-    pygame.mixer.music.set_volume(0.4)
+    rect_exit = string_exit.get_rect()
+    rect.x = 125
+    rect.y = 180
+    rect_exit.x = 175
+    rect_exit.y = 300
+    pygame.mixer.music.load("data/falling.mp3")
+    pygame.mixer.music.set_volume(0.2)
     pygame.mixer.music.play(1)
-    screen.blit(string_rendered, rect)
     pygame.display.flip()
 
     while True:
@@ -329,17 +359,27 @@ def game_over():
             if event.type == pygame.QUIT:
                 exit()
             if event.type == pygame.MOUSEBUTTONDOWN:
-                if 380 < event.pos[1] < rect.h + 380 and 175 < event.pos[0] < rect.w + 180:
-                    pygame.display.quit()
+                if 180 < event.pos[1] < rect.h + 180 and 125 < event.pos[0] < rect.w + 175:
+                    pygame.mixer_music.stop()
                     game()
-                    pygame.quit()
+                    pygame.mixer_music.play()
+                if 300 < event.pos[1] < rect.h + 300 and 175 < event.pos[0] < rect.w + 175:
                     exit(0)
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
-                    pygame.display.quit()
-                    game()
-                    pygame.quit()
-                    exit(0)
+            screen = pygame.display.set_mode((500, 500))
+            screen.blit(fon, (0, 0))
+            font = pygame.font.Font(None, 65)
+            string_rendered = font.render('Начать игру', 1, pygame.Color('White'))
+            string_exit = font.render('Выход', 1, pygame.Color('White'))
+            pygame.mouse.set_visible(True)
+            rect = string_rendered.get_rect()
+            rect_exit = string_exit.get_rect()
+            rect.x = 125
+            rect.y = 180
+            rect_exit.x = 175
+            rect_exit.y = 300
+            screen.blit(string_rendered, rect)
+            screen.blit(string_exit, rect_exit)
+            pygame.display.flip()
 
 
 def info():
@@ -369,15 +409,6 @@ def info():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 exit()
-
-
-def main():
-    ex = Main()
-    ex.show()
-    exit(404)
-
-
-app = QApplication(argv)
-ex = Main()
-ex.show()
-exit(app.exec())
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    return
